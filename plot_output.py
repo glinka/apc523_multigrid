@@ -22,8 +22,13 @@ def plot_timecourse(data):
     ax2 = fig.add_subplot(212, sharex=ax1)
     ax2.set_ylabel('y')
     ax2.set_xlabel('t')
-    ax1.plot(data[:,4], data[:,0])
-    ax2.plot(data[:,4], data[:,1])
+    maxtime = np.max(data[:,4])
+    ax1.scatter(data[:,4], data[:,0], marker='.', c=(data[:,4]), cmap="Blues", lw=0)
+    ax1.hold(True)
+    ax1.scatter(data[:,4], data[:,5], marker='.', c=(data[:,4]), cmap="RdPu", lw=0)
+    ax2.scatter(data[:,4], data[:,1], marker='.', c=(data[:,4]), cmap="YlOrRd", lw=0)
+    ax2.hold(True)
+    ax2.scatter(data[:,4], data[:,6], marker='.', c=(data[:,4]), cmap="RdPu", lw=0)
     plt.savefig("tc.png")
 
 def plot_phaseplane(data):
@@ -31,7 +36,10 @@ def plot_phaseplane(data):
     ax = fig.add_subplot(111)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.plot(data[:,0], data[:,1])
+    maxtime = np.max(data[:,4])
+    ax.scatter(data[:,0], data[:,1], marker='.', c=(data[:,4]), cmap="Purples", lw=0)
+    ax.hold(True)
+    ax.scatter(data[:,5], data[:,6], marker='.', c=(data[:,4]), cmap="Greens", lw=0)
     plt.savefig("pp.png")
 
 if __name__=="__main__":
