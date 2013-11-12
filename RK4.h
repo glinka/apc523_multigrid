@@ -5,7 +5,7 @@
 class RK4: public Integrator {
  public:
  RK4(fn f, const double dt = 1e-3): Integrator(f, dt) {};
-  ~RK4() {};
+    ~RK4() {};
   vec step(const vec x) {
     int i;
     vec k1 = f(x);

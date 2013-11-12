@@ -14,7 +14,7 @@ class Integrator {
  public:
   virtual vec step(const vec x) = 0;
  Integrator(fn f, const double dt = 1e-3): f(f), dt(dt) {};
-  ~Integrator() {};
+  virtual ~Integrator() {};
 };
 
 #endif
