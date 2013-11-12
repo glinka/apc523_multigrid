@@ -29,7 +29,15 @@ def plot_timecourse(data):
     ax2.scatter(data[:,4], data[:,1], marker='.', c=(data[:,4]), cmap="YlOrRd", lw=0)
     ax2.hold(True)
     ax2.scatter(data[:,4], data[:,6], marker='.', c=(data[:,4]), cmap="RdPu", lw=0)
-    plt.savefig("tc.png")
+    plt.savefig("xytc.png")
+    ax1.hold(False)
+    ax2.hold(False)
+    ax1.plot(data[:,4], data[:,7], c='b')
+    ax2.plot(data[:,4], data[:,8], c='g')
+    ax1.set_ylabel('energy')
+    ax2.set_ylabel('angular momentum')
+    ax2.set_xlabel('t')
+    plt.savefig("eamtc.png")
 
 def plot_phaseplane(data):
     fig = plt.figure()
@@ -42,6 +50,21 @@ def plot_phaseplane(data):
     ax.scatter(data[:,5], data[:,6], marker='.', c=(data[:,4]), cmap="Greens", lw=0)
     plt.savefig("pp.png")
 
+def plot_sln_evo(data):
+    fig = plt.figure();
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('x')
+    ax.set_ylabel('u')
+    ax.hold(True)
+    n = data.shape[0]
+    m = data.shape[1]
+    x_vals = np.linspace(0, 1, n)
+    labels = ["20 iters", "100 iters", "1000 iters", "moar iters", "analytical sln"]
+    for i in range(m):
+        ax.plot(x_vals, data[:,i], label=labels[i])
+    ax.legend(loc=2)
+    plt.savefig("jacobi_evo.png")
+
 if __name__=="__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -50,5 +73,5 @@ if __name__=="__main__":
     #change after properly including header in data files
     for file in args.input_files:
         data = get_data(file, header_rows=0)
-        plot_timecourse(data)
-        plot_phaseplane(data)
+        plot_sln_evo(data)
+
