@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
   std::ofstream output(filename);
   std::vector< vect > data;
   //straight dope jacobi
-  /**
+
   vect vcalc_x(calc_x, calc_x + n);
   for(i = 0; i < nsteps; i++) {
     jacobi(A, vcalc_x, b, n);
@@ -183,15 +183,15 @@ int main(int argc, char *argv[]) {
   }
   data.push_back(vcalc_x);
   data.push_back(vect(analytical_x, analytical_x+n));
-  **/
-  //straight garbage multigrid
 
+  //straight garbage multigrid
+  /**
   const int maxdepth = 7;
   std::vector< vect > xs;
   xs.push_back(vect(calc_x, calc_x + n));
   multigrid(A, xs, b, n, 0, maxdepth);
   data.push_back(xs.front());
-
+  **/
 
 
   save_data(data, output);

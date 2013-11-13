@@ -85,5 +85,5 @@ if __name__=="__main__":
     #change after properly including header in data files
     for file in args.input_files:
         data = get_data(file, header_rows=0)
-        plot_sln(data)
+        plot_sln_evo(data)
 

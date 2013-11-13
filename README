@@ -1,0 +1,5 @@
+There's not a lot of analysis/figures enclosed, but as Prof. Stone gave me an extension I figured it'd be best to submit something.
+
+Pr1: I believe the integrators are working but I could never properly compare computed to anlytical results
+
+Pr2: Jacobi's method works, but converges slowly to the low-frequency variations. Despite a full day's worth of effort, the multigrid algorithm still doesn't appear to do anything but iterate the full-scale system 20 times.
