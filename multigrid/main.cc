@@ -4,9 +4,11 @@
 #include <cstdlib>
 #include <cmath>
 
+typedef std::vector< double > vect;
 const double PI = 3.14159;
+const int STARTING_RES = 8;
 
-void jacobi(double** A, double* x, const double* b, const int n) {
+void jacobi(double** A, vect &x, const double* b, const int n) {
   int i, j;
   double temp[n];
   for(i = 0; i < n; i++) {
@@ -22,48 +24,40 @@ void jacobi(double** A, double* x, const double* b, const int n) {
   }
 }
 
-void smoothen(double* x, const int j) {
+double* smoothen(vect& x, const int j) {
   int n = pow(2, (j+1)) - 1;
-  double temp[n];
+  double* newx = new double[n];
   int i;
   for(i = 0; i < n; i++) {
     if(i != 0 && i != n-1) {
-      if(i % 2 == 0) {
-	temp[i] = x[i%2];
+      if((i+1) % 2 == 0) {
+	newx[i] = x[(i-1)/2];
       }
       else {
-	temp[i] = (x[(i+1) % 2] + x[(i-1) % 2])/2;
+	newx[i] = (x[(i-2) / 2] + x[i / 2])/2;
       }
     }
     else if(i == 0) {
-      temp[i] = x[i];
+      newx[i] = x[i];
     }
     else if(i == n-1) {
-      temp[i] = x[i];
+      newx[i] = x[i];
     }
   }
-  delete[] x;
-  x = new double[n];
-  for(i = 0; i < n; i++) {
-    x[i] = temp[i];
-  }
+  return newx;
 }
 
-void coarsen(double* resid, const int j) {
+double* coarsen(vect &resid, const int j) {
   int n = pow(2, (j-1)) - 1;
-  double temp[n];
+  double* coarse_resid = new double[n];
   int i;
   for(i = 0; i < n; i++) {
-    temp[i] = (resid[i-1] + resid[i] + resid[i+1])/3;
+    coarse_resid[i] = (resid[2*i] + resid[2*i+1] + resid[2*i+2])/3;
   }
-  delete[] resid;
-  resid = new double[n];
-  for(i = 0; i < n; i++) {
-    resid[i] = temp[i];
-  }
+  return coarse_resid;
 }
 
-void save_data(const std::vector< std::vector<double> > data, std::ofstream &filehandle) {
+void save_data(const std::vector< vect > data, std::ofstream &filehandle) {
   int n = data[0].size();
   int m  = data.size();
   int i, j;
@@ -75,13 +69,9 @@ void save_data(const std::vector< std::vector<double> > data, std::ofstream &fil
   }
 }
 
-void init_eqn(double **A, double *calc_x, double *b, const int n) {
-  double h = 1.0/(n-1);
+void init_eqn(double **A, const int n) {
   int i, j;
   for(i = 0; i < n; i++) {
-    double x = i*h;
-    b[i] = h*h*(-20 + 120*0.5*PI*x*cos(20*PI*pow(x, 3)) - 0.5*pow(60*PI*pow(x, 2), 2)*sin(20*PI*pow(x, 3)));
-    calc_x[i] = 0;
     for(j = 0; j < n; j++) {
       A[i][j] = 0;
     }
@@ -92,55 +82,70 @@ void init_eqn(double **A, double *calc_x, double *b, const int n) {
     }
     else if(i == 0) {
       A[i][i] = 1;
-      b[i] = 1;
     }
     else if(i == n-1) {
       A[i][i] = 1;
-      b[i] = 3;
     }
   }
 }
 
-void multigrid(double **A, double *x, const double *b, double* resid, int n, int depth, const int maxdepth) {
+vect get_resid(double **A, vect x, const double *b, const int n) {
+  vect neg_resid(n);
+  for(int i = 0; i < n; i++) {
+    double sum = 0;
+    for(int j = 0; j < n; j++) {
+      sum += A[i][j]*x[j];
+    }
+    neg_resid[i] = b[i] - sum;
+  }
+  return neg_resid;
+}
+
+void multigrid(double **A, std::vector< vect > &xs, const double *b, int n, int depth, const int maxdepth) {
   int i;
   int njacobi_iters = 10;
-  int level = maxdepth - depth;
+  int level = STARTING_RES - depth;
+  vect x = xs[depth];
+  double** newA;
+  double *newb;
+  int newn;
   for(i = 0; i < njacobi_iters; i++) {
     jacobi(A, x, b, n);
   }
-  resid = get_neg_resid(A, x, b, n);
+  xs[depth] = x;
+  //if not at bottom, coarsen and descend
   if(depth < maxdepth - 1) {
-    coarsen(resid, level);
-    int newn = pow(2, level - 1) - 1;
-    double newA = new double*[newn];
+    vect resid = get_resid(A, x, b, n);
+    newb = coarsen(resid, level);
+    newn = pow(2, level - 1) - 1;
+    newA = new double*[newn];
     for(int j = 0; j < newn; j++) {
       newA[j] = new double[newn];
     }
-    double newx[newn];
-    double newb[newn];
-    init_eqn(newA, newx, newb, newn);
-    multigrid(newA, newx, resid, newn, depth + 1, maxdepth);
+    init_eqn(newA, newn);
+    xs.push_back(vect(newn, 0));
+    multigrid(newA, xs, newb, newn, depth + 1, maxdepth);
   }
-  else if(depth == maxdepth - 1) {
+  //if at bottom, smoothen and ascend
+  if(depth > 0) {
+    x = xs[depth];
     for(i = 0; i < njacobi_iters; i++) {
       jacobi(A, x, b, n);
     }
-    smoothen(x, level);
+    double* smoothed_x = smoothen(x, level);
+    int nextn = pow(2, level + 1) - 1;
+    for(i = 0; i < nextn; i++) {
+      xs[depth-1][i] += smoothed_x[i];
+    }
   }
-
-
-  for(i = 0; i < n; i++) {
-    
-  for(i = 0; i < njacobi_iters; i++) {
-    jacobi(A, x, b, n);
+  else{
+    x = xs[depth];
+    for(i = 0; i < njacobi_iters; i++) {
+      jacobi(A, x, b, n);
+    }
+    xs[depth] = x;
   }
-  smoothen(x, level);
-  }
-  //pass resid through all levels, add to individual xs
 }
-  
-    
-  
 
 int main(int argc, char *argv[]) {
   int i, j;
@@ -153,28 +158,42 @@ int main(int argc, char *argv[]) {
   double *b = new double[n];
   double **A = new double*[n];
   for(i = 0; i < n; i++) {
+    double x = i*h;
     A[i] = new double[n];
     analytical_x[i] = 1 + 12*x - 10*pow(x, 2) + 0.5*sin(20*PI*pow(x, 3));
+    b[i] = h*h*(-20 + 120*0.5*PI*x*cos(20*PI*pow(x, 3)) - 0.5*pow(60*PI*pow(x, 2), 2)*sin(20*PI*pow(x, 3)));
+    calc_x[i] = 0;
   }
-  init_eqn(A, calc_x, b, n);
+  b[0] = 1;
+  b[n-1] = 3;
+  init_eqn(A, n);
   std::stringstream ss;
   ss << "data/jacobi_" << n << ".csv";
   std::string filename = ss.str();
   std::ofstream output(filename);
-  std::vector< std::vector<double> > data;
+  std::vector< vect > data;
   //straight dope jacobi
   /**
+  vect vcalc_x(calc_x, calc_x + n);
   for(i = 0; i < nsteps; i++) {
-    jacobi(A, calc_x, b, n);
+    jacobi(A, vcalc_x, b, n);
     if(i+1 == 20 || i+1 == 100 || i+1 == 1000) {
-      data.push_back(std::vector<double>(calc_x, calc_x+n));
+      data.push_back(vcalc_x);
     }
   }
-  **/  
+  data.push_back(vcalc_x);
+  data.push_back(vect(analytical_x, analytical_x+n));
+  **/
+  //straight garbage multigrid
+
   const int maxdepth = 7;
-  multigrid(A, calc_x, b, n, 0, 7);
-  data.push_back(std::vector<double>(calc_x, calc_x+n));
-  data.push_back(std::vector<double>(analytical_x, analytical_x+n));
+  std::vector< vect > xs;
+  xs.push_back(vect(calc_x, calc_x + n));
+  multigrid(A, xs, b, n, 0, maxdepth);
+  data.push_back(xs.front());
+
+
+
   save_data(data, output);
   output.close();
   delete[] calc_x;
@@ -185,32 +204,3 @@ int main(int argc, char *argv[]) {
   }
   delete[] A;
 }
-
-  /**
-  for(j = 0; j < n; j++) {
-    A[0][j] /= A[0][0];
-  }
-  b[0] /= A[0][0];
-  //row-diag
-  for(i = 1; i < n; i++) {
-    //pivot
-    double max = A[i][i];
-    int max_row = i;
-    for(k = i; k < n; k++) {
-      if(A[k][i] > max) {
-	max = A[k][i];
-	max_row = k;
-      }
-    }
-    for(k = 0; k < n; k++) {
-      temp[k] = A[i][k];
-      A[i][k] = A[max_row][k];
-      A[max_row][k] = temp[k];
-    }
-    for(j = i-1; j < n; j++) {
-      A[i][j] -= A[i][i-1]*A[i-1][j];
-      A[i][j] /= A[i][i];
-    }
-  }
-  **/
-  

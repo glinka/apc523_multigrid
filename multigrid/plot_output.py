@@ -65,6 +65,18 @@ def plot_sln_evo(data):
     ax.legend(loc=2)
     plt.savefig("jacobi_evo.png")
 
+def plot_sln(data):
+    fig = plt.figure();
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('x')
+    ax.set_ylabel('u')
+    n = data.shape[0]
+    x_vals = np.linspace(0, 1, n)
+    ax.plot(x_vals, data)
+    plt.savefig("multigrid.png")
+
+
+
 if __name__=="__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -73,5 +85,5 @@ if __name__=="__main__":
     #change after properly including header in data files
     for file in args.input_files:
         data = get_data(file, header_rows=0)
-        plot_sln_evo(data)
+        plot_sln(data)
 
